@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ludo (Minimal JS)</title>
+  <style>
+    :root{
+      --bg:#0f172a; /* slate-900 */
+      --panel:#111827; /* gray-900 */
+      --muted:#94a3b8; /* slate-400 */
+      --line:#1f2937; /* gray-800 */
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      background: radial-gradient(1200px 800px at 70% -200px, #1e293b 0, #0b1222 40%, #060a14 80%);
+      color:#e5e7eb; display:flex; min-height:100vh; align-items:center; justify-content:center; padding:20px;
+    }
+    .game{
+      width:min(900px, 95vw); display:grid; grid-template-columns: 1.2fr 1fr; gap:18px;
+    }
+    .boardWrap{background:var(--panel); border-radius:18px; padding:16px; box-shadow:0 20px 50px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04)}
+    .panel{background:var(--panel); border-radius:18px; padding:16px; box-shadow:0 20px 50px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04); display:flex; flex-direction:column; gap:12px}
+
+    .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+    .title{font-weight:800; letter-spacing:.3px; font-size:18px}
+    .muted{color:var(--muted); font-size:13px}
+    button{
+      background:#111827; color:#e5e7eb; border:1px solid #263041; padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:700; transition:.15s transform, .2s background;
+    }
+    button:hover{background:#0f172a}
+    button:active{transform:scale(.98)}
+    .pill{padding:6px 10px; border-radius:999px; border:1px solid #243244; background:#0b1220; font-size:12px}
+
+    .log{
+      flex:1; overflow:auto; max-height:420px; padding:10px; border-radius:12px; background:#0b1220; border:1px dashed #1f2b3c; font-size:13px; line-height:1.35;
+    }
+    .log p{margin:.35rem 0}
+
+    .legend .chip{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:10px; background:#0b1220; border:1px solid #223049; font-size:13px}
+    .swatch{width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,.8)}
+
+    .dice{
+      width:60px; height:60px; border-radius:14px; background:#0b1220; border:1px solid #243244; display:grid; place-items:center; font-size:26px; font-weight:800;
+      user-select:none;
+    }
+
+    /* SVG helpers */
+    svg{width:100%; height:auto; display:block}
+    .pathDot{ fill:#0b1220; stroke:#334155; stroke-width:2; }
+    .pathDot.safe{ stroke:#64748b; }
+    .token{ stroke:#0b1220; stroke-width:3; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); cursor:pointer }
+    .token.out{ opacity:.55 }
+
+    .homeTrack text{ font-size:10px; fill:#94a3b8 }
+
+    .hint{font-size:12px; color:#9ca3af}
+
+    @media (max-width: 860px){
+      .game{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <div class="boardWrap">
+      <!-- Responsive SVG board -->
+      <svg viewBox="0 0 700 700" id="board" aria-label="Ludo Board">
+        <defs>
+          <radialGradient id="bgG" cx="50%" cy="45%" r="65%">
+            <stop offset="0%" stop-color="#0b1220"/>
+            <stop offset="100%" stop-color="#020617"/>
+          </radialGradient>
+        </defs>
+        <rect x="0" y="0" width="700" height="700" rx="22" fill="url(#bgG)"/>
+        <g id="track"></g>
+        <!-- Home circles -->
+        <g id="homes">
+          <circle cx="350" cy="100" r="26" fill="#ef4444" opacity=".25" stroke="#ef4444" />
+          <circle cx="350" cy="600" r="26" fill="#22c55e" opacity=".25" stroke="#22c55e" />
+        </g>
+        <!-- Tokens -->
+        <g id="tokens">
+          <circle id="p1" class="token" r="14" fill="#ef4444" />
+          <circle id="p2" class="token" r="14" fill="#22c55e" />
+        </g>
+        <!-- Labels -->
+        <g class="homeTrack">
+          <text x="330" y="70">P1 Start</text>
+          <text x="324" y="660">P2 Start</text>
+        </g>
+      </svg>
+      <p class="hint">Rules (simplified): Roll a 6 to enter the track. Make one full lap to unlock Home. Exact roll required to enter Home. Landing on opponent (not on safe dots) sends them back to Start. Roll a 6 = extra turn.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="justify-content:space-between; align-items:center">
+        <div>
+          <div class="title">Ludo — 2 Players</div>
+          <div class="muted">Minimal HTML/CSS/JS implementation. No libraries.</div>
+        </div>
+        <div class="row">
+          <div class="dice" id="dice">–</div>
+          <button id="rollBtn">Roll Dice</button>
+          <button id="resetBtn" title="Restart game">Reset</button>
+        </div>
+      </div>
+
+      <div class="legend row">
+        <span class="chip"><span class="swatch" style="background:#ef4444"></span> Player 1</span>
+        <span class="chip"><span class="swatch" style="background:#22c55e"></span> Player 2</span>
+        <span class="pill">Safe Tiles: 0, 7, 14, 21</span>
+      </div>
+
+      <div class="row" style="gap:14px">
+        <span class="pill" id="turnPill">Turn: P1</span>
+        <span class="pill" id="statePill">State: Rolling…</span>
+      </div>
+
+      <div class="log" id="log"></div>
+
+      <div class="muted">Tip: You can also click your token to move after rolling.</div>
+    </div>
+  </div>
+
+  <script>
+    // --- Geometry: build a 28-tile circular track ---
+    const TRACK_LEN = 28;
+    const SAFE = new Set([0,7,14,21]); // safe positions where captures don't happen
+
+    const trackG = document.getElementById('track');
+    const tokensG = document.getElementById('tokens');
+    const diceEl = document.getElementById('dice');
+    const rollBtn = document.getElementById('rollBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const logEl = document.getElementById('log');
+    const turnPill = document.getElementById('turnPill');
+    const statePill = document.getElementById('statePill');
+
+    const boardSize = 700;
+    const cx = 350, cy = 350; // center
+    const R = 250;            // radius for path dots
+
+    const path = Array.from({length: TRACK_LEN}, (_,i)=>{
+      const ang = (i / TRACK_LEN) * Math.PI * 2 - Math.PI/2; // start at top
+      const x = cx + R * Math.cos(ang);
+      const y = cy + R * Math.sin(ang);
+      return {x,y, safe: SAFE.has(i)};
+    });
+
+    function drawTrack(){
+      trackG.innerHTML = '';
+      path.forEach((pt,i)=>{
+        const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        dot.setAttribute('class', 'pathDot' + (pt.safe? ' safe':'') );
+        dot.setAttribute('cx', pt.x);
+        dot.setAttribute('cy', pt.y);
+        dot.setAttribute('r', 12);
+        trackG.appendChild(dot);
+
+        // number label every 7 tiles for reference
+        if(i % 7 === 0){
+          const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+          lbl.setAttribute('x', pt.x-4);
+          lbl.setAttribute('y', pt.y+4);
+          lbl.setAttribute('fill', '#64748b');
+          lbl.setAttribute('font-size','10');
+          lbl.textContent = i;
+          trackG.appendChild(lbl);
+        }
+      });
+    }
+
+    // --- Game State ---
+    const players = [
+      { id:'p1', name:'P1', color:'#ef4444', startEntry: 0,   pos: -1, steps:0, home:false },
+      { id:'p2', name:'P2', color:'#22c55e', startEntry: 14,  pos: -1, steps:0, home:false },
+    ];
+    let turn = 0; // index in players
+    let lastRoll = null;
+    let canMove = false;
+
+    function tokenEl(pid){ return document.getElementById(pid); }
+
+    function placeTokens(){
+      // Start positions (off-board)
+      const starts = { p1:{x:350, y:100}, p2:{x:350, y:600} };
+      players.forEach(p=>{
+        const el = tokenEl(p.id);
+        if(p.pos < 0){
+          el.setAttribute('cx', starts[p.id].x);
+          el.setAttribute('cy', starts[p.id].y);
+          el.classList.add('out');
+        }else{
+          el.setAttribute('cx', path[p.pos].x);
+          el.setAttribute('cy', path[p.pos].y);
+          el.classList.remove('out');
+        }
+      });
+    }
+
+    function log(msg){
+      const p = document.createElement('p');
+      p.innerHTML = msg;
+      logEl.prepend(p);
+    }
+
+    function updateUI(){
+      diceEl.textContent = lastRoll ?? '–';
+      turnPill.textContent = `Turn: ${players[turn].name}`;
+      statePill.textContent = `State: ${canMove? 'Move your token' : 'Rolling…'}`;
+      placeTokens();
+    }
+
+    function rand1to6(){ return Math.floor(Math.random()*6)+1; }
+
+    function nextTurn(extra=false){
+      if(!extra){ turn = (turn+1) % players.length; }
+      canMove = false; lastRoll = null; updateUI();
+    }
+
+    function otherIndex(i){ return (i+1)%players.length; }
+
+    function roll(){
+      if(canMove) return; // must move first
+      lastRoll = rand1to6();
+      const p = players[turn];
+      log(`<b>${p.name}</b> rolled <b>${lastRoll}</b>.`);
+      canMove = true; updateUI();
+    }
+
+    function captureIfAny(mover){
+      const enemyIdx = otherIndex(players.indexOf(mover));
+      const enemy = players[enemyIdx];
+      if(enemy.home || enemy.pos < 0) return false;
+      if(enemy.pos === mover.pos && !path[mover.pos].safe){
+        enemy.pos = -1; enemy.steps = 0;
+        log(`<span style="color:${enemy.color}">${enemy.name}</span> was captured! Back to start.`);
+        return true;
+      }
+      return false;
+    }
+
+    function tryMove(p){
+      if(!canMove || lastRoll==null) return;
+      if(p.home){ log(`${p.name} already finished.`); return; }
+
+      // Leaving start
+      if(p.pos < 0){
+        if(lastRoll === 6){
+          p.pos = p.startEntry; p.steps = 1; // first step onto board
+          log(`${p.name} enters the board.`);
+          captureIfAny(p);
+          canMove = false;
+          updateUI();
+          // Extra turn for 6
+          nextTurn(true);
+          return;
+        } else {
+          log(`${p.name} needs a 6 to enter.`);
+          canMove = false; updateUI();
+          nextTurn(false);
+          return;
+        }
+      }
+
+      // Normal movement
+      const newPos = (p.pos + lastRoll) % TRACK_LEN;
+      const newSteps = p.steps + lastRoll;
+
+      // Home logic: after completing >= 28 steps (one full lap), you must roll exact to go Home
+      const lapDone = p.steps >= TRACK_LEN; // already completed a lap previously
+      const aboutToFinish = (p.steps < TRACK_LEN) && (newSteps >= TRACK_LEN);
+
+      if(lapDone){
+        if(lastRoll === 1){
+          // exact roll 1 to enter Home (simple rule)
+          p.home = true; p.pos = -1; log(`<b>${p.name}</b> reached Home! 🏆`);
+          canMove = false; updateUI();
+          // Check win
+          checkGameOver();
+          // No extra turn for entering home
+          nextTurn(false);
+          return;
+        } else {
+          log(`${p.name} needs exactly 1 to enter Home.`);
+          canMove = false; updateUI(); nextTurn(false); return;
+        }
+      }
+
+      p.pos = newPos; p.steps = newSteps;
+      log(`${p.name} moves to tile <b>${p.pos}</b>.`);
+      captureIfAny(p);
+
+      canMove = false; updateUI();
+      // Extra turn on 6
+      nextTurn(lastRoll===6);
+    }
+
+    function checkGameOver(){
+      const finished = players.filter(pl=>pl.home);
+      if(finished.length){
+        alert(`${finished[0].name} wins!`);
+      }
+    }
+
+    function reset(){
+      players.forEach((p,i)=>{ p.pos=-1; p.steps=0; p.home=false; });
+      turn = 0; lastRoll=null; canMove=false; logEl.innerHTML='';
+      log('New game started. P1 begins.');
+      updateUI();
+    }
+
+    // --- Init ---
+    drawTrack();
+    placeTokens();
+    updateUI();
+    log('Welcome! Roll a 6 to enter the board. Make one full lap, then roll exactly 1 to enter Home.');
+
+    rollBtn.addEventListener('click', roll);
+    resetBtn.addEventListener('click', reset);
+
+    // Click tokens to move after rolling
+    tokensG.addEventListener('click', (e)=>{
+      const id = e.target.id;
+      const idx = players.findIndex(p=>p.id===id);
+      if(idx===turn) tryMove(players[idx]);
+    });
+
+    // Space = roll / Enter = move (for current player)
+    window.addEventListener('keydown', (e)=>{
+      if(e.code==='Space'){ e.preventDefault(); roll(); }
+      if(e.code==='Enter'){ e.preventDefault(); tryMove(players[turn]); }
+    });
+  </script>
+</body>
+</html>
