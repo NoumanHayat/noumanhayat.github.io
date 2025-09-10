@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Deal or No Deal — $1 → $1,000,000</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#7b8794;--glass: rgba(255,255,255,0.04)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#071025 0%, #081426 60%);color:#e6eef6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .wrap{width:1100px;max-width:100%;display:grid;grid-template-columns:360px 1fr;gap:20px}
+    .panel{background:var(--card);border-radius:14px;padding:18px;box-shadow:0 6px 24px rgba(0,0,0,0.5);}
+    header{display:flex;align-items:center;gap:12px}
+    header h1{font-size:18px;margin:0}
+    .info{font-size:13px;color:var(--muted)}
+    .amounts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px}
+    .amount{padding:8px 10px;border-radius:8px;background:var(--glass);display:flex;justify-content:space-between;align-items:center;font-weight:600}
+    .amount.removed{opacity:0.28;text-decoration:line-through}
+
+    .cases-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+    .case{background:linear-gradient(180deg,#0b2530,#08202a);height:72px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;padding:8px;border:2px solid rgba(255,255,255,0.03)}
+    .case.opened{background:linear-gradient(180deg,#173b3f,#0f2b2e);opacity:0.8;cursor:default}
+    .case .num{font-weight:700}
+    .case .small{font-size:12px;color:var(--muted)}
+
+    .controls{display:flex;gap:10px;margin-top:14px}
+    button{background:var(--accent);border:none;color:#042027;padding:10px 12px;border-radius:8px;font-weight:700;cursor:pointer}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid rgba(6,182,212,0.18)}
+
+    .right{display:flex;flex-direction:column;gap:12px}
+    .board{display:flex;gap:12px}
+    .left-board{flex:1}
+    .right-board{width:260px}
+
+    .picked{padding:12px;border-radius:10px;background:linear-gradient(180deg,#081f28,#062026);text-align:center}
+    .picked h3{margin:0;font-size:14px}
+    .big{font-size:20px;font-weight:800;margin-top:6px}
+
+    .offer{padding:12px;border-radius:10px;background:linear-gradient(180deg,#0f1b25,#06121a);text-align:center}
+    .offer .bank{font-size:13px;color:var(--muted)}
+    .offer .money{font-size:20px;font-weight:800;margin-top:6px}
+
+    .log{height:140px;overflow:auto;padding:10px;background:linear-gradient(0deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:8px;font-size:13px}
+
+    .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,0.6)}
+    .dialog{background:#071725;padding:22px;border-radius:12px;width:420px;max-width:92%;text-align:center}
+    .dialog h2{margin:0 0 8px}
+
+    footer{margin-top:10px;color:var(--muted);font-size:13px;text-align:center}
+
+    @media (max-width:980px){.wrap{grid-template-columns:1fr;}}
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <header>
+        <div>
+          <h1>Deal or No Deal</h1>
+          <div class="info">Pick one case to keep. Open others to reveal amounts. Banker will make offers.</div>
+        </div>
+      </header>
+
+      <div class="amounts" id="amountsList"></div>
+
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between">
+        <div class="info">Round: <span id="roundInfo">—</span></div>
+        <div class="info">Opened: <span id="openedCount">0</span></div>
+      </div>
+
+      <div class="controls">
+        <button id="newGameBtn">New Game</button>
+        <button id="shuffleBtn" class="ghost">Shuffle Cases</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <div class="log" id="log"></div>
+      </div>
+
+      <footer>Single-file demo • Start amounts $1 → $1,000,000</footer>
+    </div>
+
+    <div class="panel right">
+      <div class="board">
+        <div class="left-board">
+          <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+            <div class="picked" id="yourCaseBox"><h3>Your Case</h3><div class="big" id="yourCase">—</div></div>
+            <div class="offer" id="offerBox"><div class="bank">Banker's Offer</div><div class="money" id="offerMoney">—</div></div>
+          </div>
+
+          <div class="cases-grid" id="casesGrid"></div>
+        </div>
+
+        <div class="right-board">
+          <h3 style="margin:0 0 8px">Remaining amounts</h3>
+          <div id="remainingList"></div>
+
+          <h3 style="margin:12px 0 8px">Controls</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button id="dealBtn" class="ghost">Deal</button>
+            <button id="noDealBtn">No Deal</button>
+            <button id="revealBtn" class="ghost">Reveal Your Case</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalRoot"></div>
+
+  <script>
+    // Game configuration
+    const AMOUNTS = [1,5,10,25,50,75,100,200,300,400,500,750,1000,5000,10000,25000,50000,75000,100000,200000,300000,400000,500000,600000,800000,1000000];
+    const TOTAL_CASES = AMOUNTS.length; // 26
+    const ROUNDS = [6,5,4,3,2,1,1,1]; // how many cases to open per round
+
+    // Game state
+    let shuffled = [];
+    let opened = new Array(TOTAL_CASES).fill(false);
+    let yourCaseIndex = null;
+    let openedCount = 0;
+    let roundIndex = 0;
+    let selecting = true; // initially player must pick a case
+
+    // DOM refs
+    const amountsList = document.getElementById('amountsList');
+    const remainingList = document.getElementById('remainingList');
+    const casesGrid = document.getElementById('casesGrid');
+    const yourCaseEl = document.getElementById('yourCase');
+    const yourCaseBox = document.getElementById('yourCaseBox');
+    const logEl = document.getElementById('log');
+    const roundInfo = document.getElementById('roundInfo');
+    const openedCountEl = document.getElementById('openedCount');
+    const offerMoney = document.getElementById('offerMoney');
+    const modalRoot = document.getElementById('modalRoot');
+
+    // Controls
+    document.getElementById('newGameBtn').addEventListener('click', initGame);
+    document.getElementById('shuffleBtn').addEventListener('click', ()=>{shuffleCases();render();log('Cases shuffled')});
+    document.getElementById('dealBtn').addEventListener('click', takeDeal);
+    document.getElementById('noDealBtn').addEventListener('click', noDeal);
+    document.getElementById('revealBtn').addEventListener('click', revealYourCase);
+
+    function initGame(){
+      shuffled = shuffleArray(AMOUNTS.slice());
+      opened = new Array(TOTAL_CASES).fill(false);
+      yourCaseIndex = null;
+      openedCount = 0;
+      roundIndex = 0;
+      selecting = true;
+      logEl.innerHTML = '';
+      modalRoot.innerHTML = '';
+      offerMoney.textContent = '—';
+      render();
+      log('New game started — pick a case to keep')
+    }
+
+    function shuffleCases(){
+      shuffled = shuffleArray(shuffled.length?shuffled:AMOUNTS.slice());
+    }
+
+    function render(){
+      // amounts panel
+      amountsList.innerHTML = '';
+      AMOUNTS.forEach(a=>{
+        const div = document.createElement('div');
+        div.className='amount ' + (isAmountRemoved(a)?'removed':'');
+        div.innerHTML = `<span>$${formatNumber(a)}</span>`;
+        amountsList.appendChild(div);
+      });
+
+      // cases grid
+      casesGrid.innerHTML = '';
+      for(let i=0;i<TOTAL_CASES;i++){
+        const c = document.createElement('div');
+        c.className = 'case' + (opened[i] ? ' opened' : '');
+        c.dataset.idx = i;
+        const shownNum = i+1;
+        c.innerHTML = `<div class="num">#${shownNum}</div><div class="small">${opened[i]?('$'+formatNumber(shuffled[i])):''}</div>`;
+        if(!opened[i]){
+          c.addEventListener('click', onCaseClick);
+        }
+        casesGrid.appendChild(c);
+      }
+
+      // your case
+      yourCaseEl.textContent = yourCaseIndex===null? '—' : `#${yourCaseIndex+1}`;
+
+      // remaining amounts
+      remainingList.innerHTML = '';
+      AMOUNTS.forEach(a=>{
+        const line = document.createElement('div');
+        line.className = 'amount ' + (isAmountRemoved(a)?'removed':'');
+        line.style.marginBottom='6px';
+        line.textContent = `$${formatNumber(a)}`;
+        remainingList.appendChild(line);
+      });
+
+      roundInfo.textContent = (roundIndex < ROUNDS.length) ? `Round ${roundIndex+1} — open ${ROUNDS[roundIndex]} cases` : 'Final round';
+      openedCountEl.textContent = openedCount;
+    }
+
+    function onCaseClick(e){
+      const idx = Number(e.currentTarget.dataset.idx);
+      if(opened[idx]) return;
+      if(selecting){
+        // player picks their case
+        yourCaseIndex = idx;
+        selecting = false;
+        log(`You picked case #${idx+1} to keep.`);
+        render();
+        return;
+      }
+
+      // normal opening
+      if(yourCaseIndex === null){ alert('Pick a case to keep first.'); return; }
+
+      // Check if allowed to open (can't open your chosen case)
+      if(idx === yourCaseIndex){ alert('That is your case — you cannot open it (unless you reveal it).'); return; }
+
+      // Open the case
+      opened[idx] = true;
+      openedCount++;
+      log(`Opened case #${idx+1} → $${formatNumber(shuffled[idx])}`);
+      render();
+
+      // After opening enough cases in current round, show bank offer
+      const toOpenThisRound = ROUNDS[roundIndex] || 1; // fallback
+      // Count how many opened in this round: compute sum of opened since last round
+      const openedSoFar = openedCount; // simple approach — show offer when openedCount equals cumulative
+      // Compute target openings: cumulative until this round
+      const cumulativeTarget = ROUNDS.slice(0, roundIndex+1).reduce((s,n)=>s+n,0);
+      if(openedSoFar >= cumulativeTarget){
+        // offer time
+        showBankOffer();
+        roundIndex++;
+      }
+
+      // If all but one case opened => game over
+      const unopenedCount = TOTAL_CASES - openedCount;
+      if(unopenedCount <= 1){
+        // final reveal
+        showFinalDialog();
+      }
+    }
+
+    function isAmountRemoved(amount){
+      // removed if any opened case had that amount
+      for(let i=0;i<TOTAL_CASES;i++) if(opened[i] && shuffled[i]===amount) return true;
+      return false;
+    }
+
+    function computeBankOffer(){
+      // Basic bank: average of remaining amounts adjusted by risk factor depending on round
+      const remaining
