@@ -1,8 +1,137 @@
-<!DOCTYPE html>
+<!-- make change in <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scrape Text by ID (Frontend Only with CORS Proxy)</title>
+    <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      padding: 20px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    h2 {
+      text-align: center;
+      color: #0078d4;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    button {
+      background: #0078d4;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    #navButtons {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 5px;
+    }
+    #output {
+      margin-top: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      min-height: 120px;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <h2>Scrape text from specific element ID</h2>
+
+  <input type="text" id="idInput" placeholder="Enter an ID (default: article)" />
+  <input type="text" id="urlInput" placeholder="Enter a URL (https://...)" />
+  <button id="scrapeBtn">Scrape Text</button>
+
+  <div id="navButtons">
+    <button id="prevBtn">⬅️ Previous</button>
+    <button id="nextBtn">➡️ Next</button>
+  </div>
+  <div id="output">Result will appear here...</div>
+
+  <script>
+    document.getElementById('scrapeBtn').addEventListener('click', async () => {
+      const url = document.getElementById('urlInput').value.trim();
+      const idValue = document.getElementById('idInput').value.trim();
+      const output = document.getElementById('output');
+
+      if (!url) {
+        output.textContent = "⚠️ Please enter a valid URL.";
+        return;
+      }
+
+      output.textContent = "⏳ Fetching content...";
+
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+
+      try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error("Failed to fetch (proxy or target may block requests)");
+
+        const data = await response.json();
+        const html = data.contents;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        // Use user-given ID if provided, else default to "article"
+        const targetId = idValue || "article";
+        const element = doc.getElementById(targetId);
+
+        if (element) {
+
+let text = element.textContent.trim() || "ℹ️ Element found but empty.";
+          // Remove inline code snippets and scripts/styles
+          text = text.replace(`var adx_id_6327 = document.getElementById('`, "")
+                     .replace(`adx_id_6327.id =`, "")
+                     .replace(`Math.floor(Math.random() * Date.now());`, "")
+                     .replace(`window.pubadxtag = window.pubadxtag || [];`, "")
+                     .replace(`window.pubadxtag.push({zoneid:`, "")
+                     .replace(` wu: window.location.href})`, "")
+                     .replace(`window.pubfuturetag = window.pubfuturetag || [];window.pubfuturetag.push({unit: `, "")
+                     .replace(`𝗳𝐫𝚎𝗲𝚠𝚎𝗯𝕟𝐨𝘃𝚎𝗹.𝗰𝗼𝗺`, "")
+                        .replace(`bg-ssp-6327');`, "")
+                        .replace(`'bg-ssp-6327-' + `, "")
+                        .replace(`6327, id: adx_id_6327.id,`, "")
+                    .replace(/\s{2,}/g, ' ')
+                        .replace(`"618befb240ce5b0028261626", id: "pf-878-1"})`, "")
+          output.textContent = text;
+
+        //   output.textContent = element.textContent.trim() || "ℹ️ Element found but empty.";
+        } else {
+          output.textContent = `❌ No element found with id='${targetId}'.`;
+        }
+      } catch (err) {
+        output.textContent = `🚫 Error: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>  -->
+
+
+<!-- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scrape Text by ID (Frontend Only with CORS Proxy)</title>
   <style>
     body {
@@ -34,6 +163,12 @@
     button:hover {
       background: #005fa3;
     }
+    #navButtons {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 5px;
+    }
     #output {
       margin-top: 20px;
       background: white;
@@ -47,16 +182,22 @@
   </style>
 </head>
 <body>
-  <h2>Scrape text from id="article"</h2>
+  <h2>Scrape text from specific element ID</h2>
 
+  <input type="text" id="idInput" placeholder="Enter an ID (default: article)" />
   <input type="text" id="urlInput" placeholder="Enter a URL (https://...)" />
   <button id="scrapeBtn">Scrape Text</button>
 
+  <div id="navButtons">
+    <button id="prevBtn">⬅️ Previous</button>
+    <button id="nextBtn">➡️ Next</button>
+  </div>
   <div id="output">Result will appear here...</div>
 
   <script>
-    document.getElementById('scrapeBtn').addEventListener('click', async () => {
+    async function scrapeContent() {
       const url = document.getElementById('urlInput').value.trim();
+      const idValue = document.getElementById('idInput').value.trim();
       const output = document.getElementById('output');
 
       if (!url) {
@@ -65,31 +206,225 @@
       }
 
       output.textContent = "⏳ Fetching content...";
-
-      // Use free AllOrigins CORS proxy
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
 
       try {
         const response = await fetch(proxyUrl);
         if (!response.ok) throw new Error("Failed to fetch (proxy or target may block requests)");
-
         const data = await response.json();
         const html = data.contents;
 
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
+        const targetId = idValue || "article";
+        const element = doc.getElementById(targetId);
 
-        const article = doc.getElementById("article");
-
-        if (article) {
-          output.textContent = article.textContent.trim();
+        if (element) {
+          let text = element.textContent.trim() || "ℹ️ Element found but empty.";
+          text = text
+            .replace(/\s{2,}/g, ' ')
+            .replace(/window\.pub.*?;/g, '')
+            .replace(/𝗳𝐫𝚎𝗲𝚠𝚎𝗯𝕟𝐨𝘃𝚎𝗹\.𝗰𝗼𝗺/g, '');
+          output.textContent = text;
         } else {
-          output.textContent = "❌ No element found with id='article'.";
+          output.textContent = `❌ No element found with id='${targetId}'.`;
         }
       } catch (err) {
         output.textContent = `🚫 Error: ${err.message}`;
       }
-    });
+    }
+
+    // Extract chapter number and modify
+    function changeChapter(direction) {
+      const urlInput = document.getElementById('urlInput');
+      const currentUrl = urlInput.value.trim();
+      const match = currentUrl.match(/chapter-(\d+)/);
+
+      if (!match) {
+        alert("❌ No chapter number found in the URL!");
+        return;
+      }
+
+      let chapterNum = parseInt(match[1]);
+      chapterNum += direction; // +1 for next, -1 for previous
+
+      if (chapterNum < 1) {
+        alert("🚫 Chapter number cannot be less than 1!");
+        return;
+      }
+
+      const newUrl = currentUrl.replace(/chapter-\d+/, `chapter-${chapterNum}`);
+      urlInput.value = newUrl;
+
+      scrapeContent(); // Automatically load new chapter
+    }
+
+    document.getElementById('scrapeBtn').addEventListener('click', scrapeContent);
+    document.getElementById('nextBtn').addEventListener('click', () => changeChapter(1));
+    document.getElementById('prevBtn').addEventListener('click', () => changeChapter(-1));
+  </script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scrape Text by ID (Frontend Only with CORS Proxy)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      padding: 20px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    h2 {
+      text-align: center;
+      color: #0078d4;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    button {
+      background: #0078d4;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    #navButtons {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 5px;
+    }
+    #copyBtn {
+      margin-top: 10px;
+      background: #28a745;
+    }
+    #copyBtn:hover {
+      background: #1e7e34;
+    }
+    #output {
+      margin-top: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      min-height: 120px;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <h2>Scrape text from specific element ID</h2>
+
+  <input type="text" id="idInput" placeholder="Enter an ID (default: article)" />
+  <input type="text" id="urlInput" placeholder="Enter a URL (https://...)" />
+  <button id="scrapeBtn">Scrape Text</button>
+
+  <div id="navButtons">
+    <button id="prevBtn">⬅️ Previous</button>
+    <button id="nextBtn">➡️ Next</button>
+  </div>
+
+  <button id="copyBtn">📋 Copy Text</button>
+
+  <div id="output">Result will appear here...</div>
+
+  <script>
+    async function scrapeContent() {
+      const url = document.getElementById('urlInput').value.trim();
+      const idValue = document.getElementById('idInput').value.trim();
+      const output = document.getElementById('output');
+
+      if (!url) {
+        output.textContent = "⚠️ Please enter a valid URL.";
+        return;
+      }
+
+      output.textContent = "⏳ Fetching content...";
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+
+      try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error("Failed to fetch (proxy or target may block requests)");
+        const data = await response.json();
+        const html = data.contents;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const targetId = idValue || "article";
+        const element = doc.getElementById(targetId);
+
+        if (element) {
+          let text = element.textContent.trim() || "ℹ️ Element found but empty.";
+          text = text
+            .replace(/\s{2,}/g, ' ')
+            .replace(/window\.pub.*?;/g, '')
+            .replace(/𝗳𝐫𝚎𝗲𝚠𝚎𝗯𝕟𝐨𝘃𝚎𝗹\.𝗰𝗼𝗺/g, '');
+          output.textContent = text;
+        } else {
+          output.textContent = `❌ No element found with id='${targetId}'.`;
+        }
+      } catch (err) {
+        output.textContent = `🚫 Error: ${err.message}`;
+      }
+    }
+
+    // Change chapter number in URL and auto-scrape
+    function changeChapter(direction) {
+      const urlInput = document.getElementById('urlInput');
+      const currentUrl = urlInput.value.trim();
+      const match = currentUrl.match(/chapter-(\d+)/);
+
+      if (!match) {
+        alert("❌ No chapter number found in the URL!");
+        return;
+      }
+
+      let chapterNum = parseInt(match[1]);
+      chapterNum += direction;
+
+      if (chapterNum < 1) {
+        alert("🚫 Chapter number cannot be less than 1!");
+        return;
+      }
+
+      const newUrl = currentUrl.replace(/chapter-\d+/, `chapter-${chapterNum}`);
+      urlInput.value = newUrl;
+
+      scrapeContent();
+    }
+
+    // Copy text to clipboard
+    function copyText() {
+      const text = document.getElementById('output').textContent.trim();
+      if (!text || text === "Result will appear here...") {
+        alert("⚠️ Nothing to copy!");
+        return;
+      }
+      navigator.clipboard.writeText(text)
+        .then(() => alert("✅ Text copied to clipboard!"))
+        .catch(() => alert("❌ Failed to copy text."));
+    }
+
+    document.getElementById('scrapeBtn').addEventListener('click', scrapeContent);
+    document.getElementById('nextBtn').addEventListener('click', () => changeChapter(1));
+    document.getElementById('prevBtn').addEventListener('click', () => changeChapter(-1));
+    document.getElementById('copyBtn').addEventListener('click', copyText);
   </script>
 </body>
 </html>
