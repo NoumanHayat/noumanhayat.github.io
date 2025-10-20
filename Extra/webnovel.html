@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scrape Text by ID (Frontend Only)</title>
+  <title>Scrape Text by ID (Frontend Only with CORS Proxy)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -66,15 +66,19 @@
 
       output.textContent = "⏳ Fetching content...";
 
-      try {
-        const response = await fetch(url); // Will fail if CORS not allowed
-        const html = await response.text();
+      // Use free AllOrigins CORS proxy
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
 
-        // Parse HTML text into DOM
+      try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error("Failed to fetch (proxy or target may block requests)");
+
+        const data = await response.json();
+        const html = data.contents;
+
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
 
-        // Find the element with id="article"
         const article = doc.getElementById("article");
 
         if (article) {
@@ -83,9 +87,7 @@
           output.textContent = "❌ No element found with id='article'.";
         }
       } catch (err) {
-        output.textContent = `🚫 Error fetching data: ${err.message}
-        
-This usually happens because the site blocks cross-origin (CORS) requests.`;
+        output.textContent = `🚫 Error: ${err.message}`;
       }
     });
   </script>
