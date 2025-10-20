@@ -374,7 +374,20 @@ let text = element.textContent.trim() || "ℹ️ Element found but empty.";
           text = text
             .replace(/\s{2,}/g, ' ')
             .replace(/window\.pub.*?;/g, '')
-            .replace(/𝗳𝐫𝚎𝗲𝚠𝚎𝗯𝕟𝐨𝘃𝚎𝗹\.𝗰𝗼𝗺/g, '');
+            .replace(/𝗳𝐫𝚎𝗲𝚠𝚎𝗯𝕟𝐨𝘃𝚎𝗹\.𝗰𝗼𝗺/g, '')
+            .replace(`var adx_id_6327 = document.getElementById('`, "")
+                     .replace(`adx_id_6327.id =`, "")
+                     .replace(`Math.floor(Math.random() * Date.now());`, "")
+                     .replace(`window.pubadxtag = window.pubadxtag || [];`, "")
+                     .replace(`window.pubadxtag.push({zoneid:`, "")
+                     .replace(` wu: window.location.href})`, "")
+                     .replace(`window.pubfuturetag = window.pubfuturetag || [];window.pubfuturetag.push({unit: `, "")
+                     .replace(`𝗳𝐫𝚎𝗲𝚠𝚎𝗯𝕟𝐨𝘃𝚎𝗹.𝗰𝗼𝗺`, "")
+                        .replace(`bg-ssp-6327');`, "")
+                        .replace(`'bg-ssp-6327-' + `, "")
+                        .replace(`6327, id: adx_id_6327.id,`, "")
+                    .replace(/\s{2,}/g, ' ')
+                        .replace(`"618befb240ce5b0028261626", id: "pf-878-1"})`, "")
           output.textContent = text;
         } else {
           output.textContent = `❌ No element found with id='${targetId}'.`;
