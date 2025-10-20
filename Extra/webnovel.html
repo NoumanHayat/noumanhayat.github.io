@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scrape Text by ID (Frontend Only)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      padding: 20px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    h2 {
+      text-align: center;
+      color: #0078d4;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    button {
+      background: #0078d4;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    #output {
+      margin-top: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      min-height: 120px;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <h2>Scrape text from id="article"</h2>
+
+  <input type="text" id="urlInput" placeholder="Enter a URL (https://...)" />
+  <button id="scrapeBtn">Scrape Text</button>
+
+  <div id="output">Result will appear here...</div>
+
+  <script>
+    document.getElementById('scrapeBtn').addEventListener('click', async () => {
+      const url = document.getElementById('urlInput').value.trim();
+      const output = document.getElementById('output');
+
+      if (!url) {
+        output.textContent = "⚠️ Please enter a valid URL.";
+        return;
+      }
+
+      output.textContent = "⏳ Fetching content...";
+
+      try {
+        const response = await fetch(url); // Will fail if CORS not allowed
+        const html = await response.text();
+
+        // Parse HTML text into DOM
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        // Find the element with id="article"
+        const article = doc.getElementById("article");
+
+        if (article) {
+          output.textContent = article.textContent.trim();
+        } else {
+          output.textContent = "❌ No element found with id='article'.";
+        }
+      } catch (err) {
+        output.textContent = `🚫 Error fetching data: ${err.message}
+        
+This usually happens because the site blocks cross-origin (CORS) requests.`;
+      }
+    });
+  </script>
+</body>
+</html>
