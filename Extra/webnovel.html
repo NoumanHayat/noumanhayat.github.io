@@ -1,95 +1,148 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scrape Text by ID (Frontend Only with CORS Proxy)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fetch & Copy — Text Viewer</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f7fa;
-      color: #333;
-      padding: 20px;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-    h2 {
-      text-align: center;
-      color: #0078d4;
-    }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      margin: 8px 0;
-      box-sizing: border-box;
-    }
-    button {
-      background: #0078d4;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    button:hover {
-      background: #005fa3;
-    }
-    #output {
-      margin-top: 20px;
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      min-height: 120px;
-      white-space: pre-wrap;
-      overflow-wrap: break-word;
-    }
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;line-height:1.4}
+    body{margin:0;padding:24px;background:#f6f7fb;color:#111}
+    .card{max-width:980px;margin:0 auto;background:white;border-radius:12px;box-shadow:0 6px 20px rgba(20,20,40,.08);padding:18px}
+    h1{margin:0 0 12px;font-size:20px}
+    label{display:block;font-size:13px;margin-top:8px}
+    input[type="text"], select{width:100%;padding:10px;border-radius:8px;border:1px solid #e3e6ef;margin-top:6px}
+    .row{display:flex;gap:8px;margin-top:12px}
+    button{padding:10px 14px;border-radius:8px;border:0;background:#2b6ef6;color:white;cursor:pointer}
+    button[disabled]{opacity:.5;cursor:default}
+    #output{margin-top:14px;padding:12px;border:1px dashed #e3e6ef;border-radius:8px;max-height:480px;overflow:auto;background:#fbfcff;white-space:pre-wrap;font-family:Menlo,Monaco,'Courier New',monospace;font-size:13px}
+    .muted{color:#6b6f85;font-size:13px}
+    .error{color:#b00020;margin-top:10px}
+    .hint{font-size:12px;color:#556}
   </style>
 </head>
 <body>
-  <h2>Scrape text from id="article"</h2>
+  <div class="card">
+    <h1>Fetch page text & copy</h1>
+    <div class="muted">Enter a URL, optionally a CSS selector (like <code>#article</code> or <code>article</code>) to extract only that element's text, then click <strong>Load</strong>.</div>
 
-  <input type="text" id="urlInput" placeholder="Enter a URL (https://...)" />
-  <button id="scrapeBtn">Scrape Text</button>
+    <label for="url">URL</label>
+    <input id="url" type="text" placeholder="https://example.com/article.html" value="">
 
-  <div id="output">Result will appear here...</div>
+    <label for="selector">CSS selector (optional)</label>
+    <input id="selector" type="text" placeholder="#article (leave empty to extract whole page text)">
+
+    <div class="row">
+      <button id="loadBtn">Load</button>
+      <button id="copyBtn" disabled>Copy text</button>
+      <button id="openBtn">Open original</button>
+    </div>
+
+    <div id="status" class="hint" aria-live="polite"></div>
+    <pre id="output" aria-label="Fetched text" tabindex="0"></pre>
+    <div id="error" class="error" role="alert"></div>
+
+    <p class="hint">Note: many sites block cross-origin requests (CORS). If you see a CORS error, use a CORS proxy (example: <code>https://api.allorigins.win/raw?url=</code> or <code>https://corsproxy.io/?</code>) or run a small backend to fetch the page.</p>
+  </div>
 
   <script>
-    document.getElementById('scrapeBtn').addEventListener('click', async () => {
-      const url = document.getElementById('urlInput').value.trim();
-      const output = document.getElementById('output');
+    const elUrl = document.getElementById('url');
+    const elSel = document.getElementById('selector');
+    const out = document.getElementById('output');
+    const status = document.getElementById('status');
+    const err = document.getElementById('error');
+    const loadBtn = document.getElementById('loadBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const openBtn = document.getElementById('openBtn');
 
-      if (!url) {
-        output.textContent = "⚠️ Please enter a valid URL.";
-        return;
-      }
-
-      output.textContent = "⏳ Fetching content...";
-
-      // Use free AllOrigins CORS proxy
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-
-      try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error("Failed to fetch (proxy or target may block requests)");
-
-        const data = await response.json();
-        const html = data.contents;
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-
-        const article = doc.getElementById("article");
-
-        if (article) {
-          output.textContent = article.textContent.trim();
-        } else {
-          output.textContent = "❌ No element found with id='article'.";
+    function visibleTextFromNode(node){
+      // Walk DOM and collect visible text, ignoring scripts/styles
+      const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, {
+        acceptNode: function(n){
+          if(!n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          const parent = n.parentElement;
+          if(!parent) return NodeFilter.FILTER_REJECT;
+          const style = getComputedStyle(parent);
+          if(style && (style.display === 'none' || style.visibility === 'hidden')) return NodeFilter.FILTER_REJECT;
+          if(parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE' || parent.closest('noscript')) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
         }
-      } catch (err) {
-        output.textContent = `🚫 Error: ${err.message}`;
+      });
+      let text = '';
+      let n;
+      while(n = walker.nextNode()){
+        text += n.nodeValue.trim() + '\n';
+      }
+      return text.replace(/\n{2,}/g,'\n\n').trim();
+    }
+
+    async function fetchAndExtract(url, selector){
+      status.textContent = 'Fetching...';
+      err.textContent = '';
+      out.textContent = '';
+      copyBtn.disabled = true;
+      try{
+        // If the user provides a known CORS proxy prefix like api.allorigins.win or corsproxy.io, we let them use it.
+        const response = await fetch(url, {mode:'cors'});
+        if(!response.ok) throw new Error(response.status + ' ' + response.statusText);
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        let text = '';
+        if(selector){
+          const node = doc.querySelector(selector);
+          if(!node) throw new Error('Selector not found in fetched document.');
+          text = node.innerText.trim();
+        }else{
+          // Extract visible text from body
+          text = visibleTextFromNode(doc.body);
+        }
+        if(!text) text = '[No text was extracted]';
+        out.textContent = text;
+        copyBtn.disabled = false;
+        status.textContent = 'Loaded. Select text or use Copy.';
+      }catch(e){
+        console.error(e);
+        // Friendly hint about CORS
+        let message = e.message || String(e);
+        if(message.toLowerCase().includes('cors') || message.toLowerCase().includes('access-control')){
+          message = 'CORS blocked the request. Try a CORS proxy (example: https://api.allorigins.win/raw?url=YOUR_URL) or run this page from a server that can fetch the page.';
+        }
+        err.textContent = message;
+        status.textContent = '';
+      }
+    }
+
+    loadBtn.addEventListener('click', ()=>{
+      const url = elUrl.value.trim();
+      const sel = elSel.value.trim();
+      if(!url){ err.textContent = 'Please enter a URL.'; return; }
+      // If user didn't include scheme, add http://
+      let full = url;
+      if(!/^https?:\/\//i.test(full)) full = 'http://' + full;
+      fetchAndExtract(full, sel);
+    });
+
+    copyBtn.addEventListener('click', async ()=>{
+      try{
+        await navigator.clipboard.writeText(out.textContent);
+        status.textContent = 'Text copied to clipboard.';
+      }catch(e){
+        err.textContent = 'Copy failed: ' + (e.message || e);
       }
     });
+
+    openBtn.addEventListener('click', ()=>{
+      const url = elUrl.value.trim();
+      if(!url) return;
+      let full = url;
+      if(!/^https?:\/\//i.test(full)) full = 'http://' + full;
+      window.open(full, '_blank');
+    });
+
+    // Allow pressing Enter in the URL field to load
+    elUrl.addEventListener('keydown', (ev)=>{ if(ev.key === 'Enter'){ ev.preventDefault(); loadBtn.click(); }});
+    elSel.addEventListener('keydown', (ev)=>{ if(ev.key === 'Enter'){ ev.preventDefault(); loadBtn.click(); }});
   </script>
 </body>
 </html>
