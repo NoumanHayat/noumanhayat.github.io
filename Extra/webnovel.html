@@ -92,8 +92,7 @@
         if(selector){
           const node = doc.querySelector(selector);
           if(!node) throw new Error('Selector not found in fetched document.');
-        //   text = node.innerText.trim();
-        text="working.."
+          text = node.innerText.trim();
         }else{
           // Extract visible text from body
           text = visibleTextFromNode(doc.body);
