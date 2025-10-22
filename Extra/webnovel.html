@@ -1,271 +1,3 @@
-<!-- make change in <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scrape Text by ID (Frontend Only with CORS Proxy)</title>
-    <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f7fa;
-      color: #333;
-      padding: 20px;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-    h2 {
-      text-align: center;
-      color: #0078d4;
-    }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      margin: 8px 0;
-      box-sizing: border-box;
-    }
-    button {
-      background: #0078d4;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    button:hover {
-      background: #005fa3;
-    }
-    #navButtons {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin-top: 5px;
-    }
-    #output {
-      margin-top: 20px;
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      min-height: 120px;
-      white-space: pre-wrap;
-      overflow-wrap: break-word;
-    }
-  </style>
-</head>
-<body>
-  <h2>Scrape text from specific element ID</h2>
-
-  <input type="text" id="idInput" placeholder="Enter an ID (default: article)" />
-  <input type="text" id="urlInput" placeholder="Enter a URL (https://...)" />
-  <button id="scrapeBtn">Scrape Text</button>
-
-  <div id="navButtons">
-    <button id="prevBtn">⬅️ Previous</button>
-    <button id="nextBtn">➡️ Next</button>
-  </div>
-  <div id="output">Result will appear here...</div>
-
-  <script>
-    document.getElementById('scrapeBtn').addEventListener('click', async () => {
-      const url = document.getElementById('urlInput').value.trim();
-      const idValue = document.getElementById('idInput').value.trim();
-      const output = document.getElementById('output');
-
-      if (!url) {
-        output.textContent = "⚠️ Please enter a valid URL.";
-        return;
-      }
-
-      output.textContent = "⏳ Fetching content...";
-
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-
-      try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error("Failed to fetch (proxy or target may block requests)");
-
-        const data = await response.json();
-        const html = data.contents;
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-
-        // Use user-given ID if provided, else default to "article"
-        const targetId = idValue || "article";
-        const element = doc.getElementById(targetId);
-
-        if (element) {
-
-let text = element.textContent.trim() || "ℹ️ Element found but empty.";
-          // Remove inline code snippets and scripts/styles
-          text = text.replace(`var adx_id_6327 = document.getElementById('`, "")
-                     .replace(`adx_id_6327.id =`, "")
-                     .replace(`Math.floor(Math.random() * Date.now());`, "")
-                     .replace(`window.pubadxtag = window.pubadxtag || [];`, "")
-                     .replace(`window.pubadxtag.push({zoneid:`, "")
-                     .replace(` wu: window.location.href})`, "")
-                     .replace(`window.pubfuturetag = window.pubfuturetag || [];window.pubfuturetag.push({unit: `, "")
-                     .replace(`𝗳𝐫𝚎𝗲𝚠𝚎𝗯𝕟𝐨𝘃𝚎𝗹.𝗰𝗼𝗺`, "")
-                        .replace(`bg-ssp-6327');`, "")
-                        .replace(`'bg-ssp-6327-' + `, "")
-                        .replace(`6327, id: adx_id_6327.id,`, "")
-                    .replace(/\s{2,}/g, ' ')
-                        .replace(`"618befb240ce5b0028261626", id: "pf-878-1"})`, "")
-          output.textContent = text;
-
-        //   output.textContent = element.textContent.trim() || "ℹ️ Element found but empty.";
-        } else {
-          output.textContent = `❌ No element found with id='${targetId}'.`;
-        }
-      } catch (err) {
-        output.textContent = `🚫 Error: ${err.message}`;
-      }
-    });
-  </script>
-</body>
-</html>  -->
-
-
-<!-- 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scrape Text by ID (Frontend Only with CORS Proxy)</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f7fa;
-      color: #333;
-      padding: 20px;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-    h2 {
-      text-align: center;
-      color: #0078d4;
-    }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      margin: 8px 0;
-      box-sizing: border-box;
-    }
-    button {
-      background: #0078d4;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    button:hover {
-      background: #005fa3;
-    }
-    #navButtons {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin-top: 5px;
-    }
-    #output {
-      margin-top: 20px;
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      min-height: 120px;
-      white-space: pre-wrap;
-      overflow-wrap: break-word;
-    }
-  </style>
-</head>
-<body>
-  <h2>Scrape text from specific element ID</h2>
-
-  <input type="text" id="idInput" placeholder="Enter an ID (default: article)" />
-  <input type="text" id="urlInput" placeholder="Enter a URL (https://...)" />
-  <button id="scrapeBtn">Scrape Text</button>
-
-  <div id="navButtons">
-    <button id="prevBtn">⬅️ Previous</button>
-    <button id="nextBtn">➡️ Next</button>
-  </div>
-  <div id="output">Result will appear here...</div>
-
-  <script>
-    async function scrapeContent() {
-      const url = document.getElementById('urlInput').value.trim();
-      const idValue = document.getElementById('idInput').value.trim();
-      const output = document.getElementById('output');
-
-      if (!url) {
-        output.textContent = "⚠️ Please enter a valid URL.";
-        return;
-      }
-
-      output.textContent = "⏳ Fetching content...";
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-
-      try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error("Failed to fetch (proxy or target may block requests)");
-        const data = await response.json();
-        const html = data.contents;
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        const targetId = idValue || "article";
-        const element = doc.getElementById(targetId);
-
-        if (element) {
-          let text = element.textContent.trim() || "ℹ️ Element found but empty.";
-          text = text
-            .replace(/\s{2,}/g, ' ')
-            .replace(/window\.pub.*?;/g, '')
-            .replace(/𝗳𝐫𝚎𝗲𝚠𝚎𝗯𝕟𝐨𝘃𝚎𝗹\.𝗰𝗼𝗺/g, '');
-          output.textContent = text;
-        } else {
-          output.textContent = `❌ No element found with id='${targetId}'.`;
-        }
-      } catch (err) {
-        output.textContent = `🚫 Error: ${err.message}`;
-      }
-    }
-
-    // Extract chapter number and modify
-    function changeChapter(direction) {
-      const urlInput = document.getElementById('urlInput');
-      const currentUrl = urlInput.value.trim();
-      const match = currentUrl.match(/chapter-(\d+)/);
-
-      if (!match) {
-        alert("❌ No chapter number found in the URL!");
-        return;
-      }
-
-      let chapterNum = parseInt(match[1]);
-      chapterNum += direction; // +1 for next, -1 for previous
-
-      if (chapterNum < 1) {
-        alert("🚫 Chapter number cannot be less than 1!");
-        return;
-      }
-
-      const newUrl = currentUrl.replace(/chapter-\d+/, `chapter-${chapterNum}`);
-      urlInput.value = newUrl;
-
-      scrapeContent(); // Automatically load new chapter
-    }
-
-    document.getElementById('scrapeBtn').addEventListener('click', scrapeContent);
-    document.getElementById('nextBtn').addEventListener('click', () => changeChapter(1));
-    document.getElementById('prevBtn').addEventListener('click', () => changeChapter(-1));
-  </script>
-</body>
-</html> -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -326,6 +58,38 @@ let text = element.textContent.trim() || "ℹ️ Element found but empty.";
       white-space: pre-wrap;
       overflow-wrap: break-word;
     }
+    #history {
+      margin-top: 25px;
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    #history h3 {
+      margin-top: 0;
+      color: #0078d4;
+    }
+    #history ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #history li {
+      padding: 5px 0;
+      cursor: pointer;
+      color: #0078d4;
+      text-decoration: underline;
+    }
+    #history li:hover {
+      color: #005fa3;
+    }
+    #clearHistoryBtn {
+      margin-top: 10px;
+      background: #dc3545;
+    }
+    #clearHistoryBtn:hover {
+      background: #b52a37;
+    }
   </style>
 </head>
 <body>
@@ -343,6 +107,12 @@ let text = element.textContent.trim() || "ℹ️ Element found but empty.";
   <button id="copyBtn">📋 Copy Text</button>
 
   <div id="output">Result will appear here...</div>
+
+  <div id="history">
+    <h3>History</h3>
+    <ul id="historyList"></ul>
+    <button id="clearHistoryBtn">🗑️ Clear History</button>
+  </div>
 
   <script>
     async function scrapeContent() {
@@ -374,7 +144,8 @@ let text = element.textContent.trim() || "ℹ️ Element found but empty.";
           text = text
             .replace(/\s{2,}/g, ' ')
             .replace(/window\.pub.*?;/g, '')
-            .replace(/𝗳𝐫𝚎𝗲𝚠𝚎𝗯𝕟𝐨𝘃𝚎𝗹\.𝗰𝗼𝗺/g, '')
+            .replace(/𝗳𝐫𝚎𝗲𝚠𝚎𝓫𝕟𝐨𝘷𝚎𝗹\.𝗰𝗼𝗺/g, '')
+            .replace(/[^a-zA-Z0-9]+/g, " ")
             .replace(`var adx_id_6327 = document.getElementById('`, "")
                      .replace(`adx_id_6327.id =`, "")
                      .replace(`Math.floor(Math.random() * Date.now());`, "")
@@ -387,8 +158,16 @@ let text = element.textContent.trim() || "ℹ️ Element found but empty.";
                         .replace(`'bg-ssp-6327-' + `, "")
                         .replace(`6327, id: adx_id_6327.id,`, "")
                     .replace(/\s{2,}/g, ' ')
+                    .replace("𝒇𝙧𝙚𝓮𝙬𝙚𝓫𝒏𝓸𝓿𝓮𝒍.𝓬𝙤𝓶","")
+                    .replace(/[^a-zA-Z0-9]+/g, " ")
+
                         .replace(`"618befb240ce5b0028261626", id: "pf-878-1"})`, "")
           output.textContent = text;
+
+          // Save URL in history
+          saveHistory(url);
+          displayHistory();
+
         } else {
           output.textContent = `❌ No element found with id='${targetId}'.`;
         }
@@ -397,7 +176,42 @@ let text = element.textContent.trim() || "ℹ️ Element found but empty.";
       }
     }
 
-    // Change chapter number in URL and auto-scrape
+    // Save and display history
+    function saveHistory(url) {
+      let history = JSON.parse(localStorage.getItem("urlHistory")) || [];
+      if (!history.includes(url)) {
+        history.push(url);
+        localStorage.setItem("urlHistory", JSON.stringify(history));
+      }
+    }
+
+    function displayHistory() {
+      const history = JSON.parse(localStorage.getItem("urlHistory")) || [];
+      const list = document.getElementById("historyList");
+      list.innerHTML = "";
+
+      if (history.length === 0) {
+        list.innerHTML = "<li>No history found.</li>";
+      } else {
+        history.slice().reverse().forEach(u => {
+          const li = document.createElement("li");
+          li.textContent = u;
+          li.onclick = () => {
+            document.getElementById("urlInput").value = u;
+            scrapeContent();
+          };
+          list.appendChild(li);
+        });
+      }
+    }
+
+    // Clear history
+    function clearHistory() {
+      localStorage.removeItem("urlHistory");
+      displayHistory();
+    }
+
+    // Navigation
     function changeChapter(direction) {
       const urlInput = document.getElementById('urlInput');
       const currentUrl = urlInput.value.trim();
@@ -418,11 +232,10 @@ let text = element.textContent.trim() || "ℹ️ Element found but empty.";
 
       const newUrl = currentUrl.replace(/chapter-\d+/, `chapter-${chapterNum}`);
       urlInput.value = newUrl;
-
       scrapeContent();
     }
 
-    // Copy text to clipboard
+    // Copy text
     function copyText() {
       const text = document.getElementById('output').textContent.trim();
       if (!text || text === "Result will appear here...") {
@@ -434,10 +247,15 @@ let text = element.textContent.trim() || "ℹ️ Element found but empty.";
         .catch(() => alert("❌ Failed to copy text."));
     }
 
+    // Event listeners
     document.getElementById('scrapeBtn').addEventListener('click', scrapeContent);
     document.getElementById('nextBtn').addEventListener('click', () => changeChapter(1));
     document.getElementById('prevBtn').addEventListener('click', () => changeChapter(-1));
     document.getElementById('copyBtn').addEventListener('click', copyText);
+    document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
+
+    // Load history on startup
+    displayHistory();
   </script>
 </body>
 </html>
