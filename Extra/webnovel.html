@@ -45,6 +45,10 @@
       margin-top: 10px;
       background: #28a745;
     }
+    #HistoryBtn{
+      margin-top: 10px;
+      background: #ed0505;
+    }
     #copyBtn:hover {
       background: #1e7e34;
     }
@@ -97,12 +101,19 @@
 
   <input type="text" id="idInput" placeholder="Enter an ID (default: article)" />
   <input type="text" id="urlInput" placeholder="Enter a URL (https://...)" />
-  <button id="scrapeBtn">Scrape Text</button>
+
+<div id="navButtons">
+    <button id="HistoryBtn">📋 History</button>
+    <button id="scrapeBtn">Scrape Text</button>
+  </div>
+  
 
   <div id="navButtons">
     <button id="prevBtn">⬅️ Previous</button>
     <button id="nextBtn">➡️ Next</button>
   </div>
+
+  
 
   <button id="copyBtn">📋 Copy Text</button>
 
@@ -115,6 +126,28 @@
   </div>
 
   <script>
+     const historyBtn = document.getElementById("HistoryBtn");
+  const historyDiv = document.getElementById("history");
+  const outputDiv = document.getElementById("output");
+
+  // Initially show output and hide history
+  historyDiv.style.display = "none";
+  outputDiv.style.display = "block";
+
+  historyBtn.addEventListener("click", () => {
+    if (historyDiv.style.display === "none") {
+      // Show history, hide output
+      historyDiv.style.display = "block";
+      outputDiv.style.display = "none";
+    } else {
+      // Show output, hide history
+      historyDiv.style.display = "none";
+      outputDiv.style.display = "block";
+    }
+  });
+
+
+
     async function scrapeContent() {
       const url = document.getElementById('urlInput').value.trim();
       const idValue = document.getElementById('idInput').value.trim();
