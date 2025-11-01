@@ -99,15 +99,6 @@
   </head>
   <body>
     <h2>Scrape text from specific element ID</h2>
-    <select id="selectorType">
-      <option value="id">Select by ID</option>
-      <option value="class">Select by Class</option>
-    </select>
-    <select id="presetSelector">
-      <option value="">Select preset element</option>
-      <option value="article">Article</option>
-      <option value="chapter-content">Chapter Content</option>
-    </select>
 
     <input
       type="text"
@@ -156,83 +147,7 @@
           outputDiv.style.display = "block";
         }
       });
-      async function scrapeContent() {
-        const url = document.getElementById("urlInput").value.trim();
-        const selectorValue = document.getElementById("idInput").value.trim();
-        const selectorType = document.getElementById("selectorType").value; // Get dropdown value
-        const output = document.getElementById("output");
 
-        if (!url) {
-          output.textContent = "⚠️ Please enter a valid URL.";
-          return;
-        }
-
-        output.textContent = "⏳ Fetching content...";
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(
-          url
-        )}`;
-
-        try {
-          const response = await fetch(proxyUrl);
-          if (!response.ok)
-            throw new Error("Failed to fetch (proxy or site blocked)");
-          const data = await response.json();
-          const html = data.contents;
-
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, "text/html");
-          let text = "";
-
-          // Default fallback ID if empty
-          const selector = selectorValue || "article";
-
-          let element;
-
-          if (selector == "1") {
-            element = doc.body;
-            text = element.textContent.trim();
-          } else {
-            // ID or Class selection
-            if (selectorType === "id") {
-              element = doc.getElementById(selector);
-              if (!element)
-                throw new Error(`No element found with id="${selector}"`);
-              text = element.textContent.trim();
-            } else {
-              const elements = doc.getElementsByClassName(selector);
-              if (!elements.length)
-                throw new Error(`No element found with class="${selector}"`);
-
-              text = Array.from(elements)
-                .map((el) => el.textContent.trim())
-                .join("\n\n");
-            }
-          }
-
-          // Cleaning
-          text = text
-            .replace(
-              /var\s+adx_id_\d+\s*=\s*document\.getElementById[\s\S]*?window\.pubadxtag\.push\([^)]*\);?/g,
-              ""
-            )
-            .replace(
-              /window\.pubadxtag\s*=\s*window\.pubadxtag\s*\|\|\s*\[\];?/g,
-              ""
-            )
-            .replace(/[^a-zA-Z0-9."\n]+/g, " ")
-            .replace(/\n{2,}/g, "\n\n")
-            .replace("𝒇𝙧𝙚𝙚𝙬𝙚𝓫𝒏𝓸𝓿𝓮𝒍.𝓬𝙤𝓶", "");
-
-          output.textContent = text;
-
-          saveHistory(url);
-          displayHistory();
-        } catch (err) {
-          output.textContent = `🚫 Error: ${err.message}`;
-        }
-      }
-
-      /*
       async function scrapeContent() {
         const url = document.getElementById("urlInput").value.trim();
         const idValue = document.getElementById("idInput").value.trim();
@@ -311,7 +226,7 @@
           output.textContent = `🚫 Error: ${err.message}`;
         }
       }
-*/
+
       // Save and display history
       function saveHistory(url) {
         let history = JSON.parse(localStorage.getItem("urlHistory")) || [];
@@ -350,6 +265,7 @@
         displayHistory();
       }
 
+     
       function changeChapter(direction) {
         const urlInput = document.getElementById("urlInput");
         const currentUrl = urlInput.value.trim();
@@ -402,15 +318,6 @@
       }
 
       // Event listeners
-      document
-        .getElementById("presetSelector")
-        .addEventListener("change", function () {
-          const selected = this.value;
-          if (selected) {
-            document.getElementById("idInput").value = selected;
-          }
-        });
-
       document
         .getElementById("scrapeBtn")
         .addEventListener("click", scrapeContent);
